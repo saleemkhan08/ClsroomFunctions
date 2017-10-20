@@ -69,18 +69,6 @@ exports.createStudent = functions.database.ref('/students/{classId}/{userId}').o
 	return event.data.ref.set(currentUser)
 })
 
-exports.studentPasswordChange = functions.database.ref('/students/{classId}/{userId}').onWrite(event => {
-	const currentUser = event.data.val()
-	admin.auth().updateUser(currentUser.userId, {
-		password : currentUser.password
-	}).then(function(userRecord) {
-		// See the UserRecord reference doc for the contents of userRecord.
-		console.log("Successfully updated user", userRecord.toJSON());
-	}).catch(function(error) {
-		console.log("Error updating user:", error);
-	});
-})
-
 exports.deleteStudent = functions.database.ref('/students/{classId}/{userId}').onDelete( event => {
 	const currentUser = event.data.previous.val()
 	admin.auth().getUserByEmail(currentUser.userId + EMAIL_SUFFIX).then(function(userRecord) {
@@ -127,12 +115,12 @@ exports.passwordResetHttp = functions.https.onRequest((req, res) => {
 	
 	userRef.once('value').then(snap => {
 		const currentUser = snap.val();
-		const uidEmali = currentUser.userId+EMAIL_SUFFIX
+		const uidEmail = currentUser.userId+EMAIL_SUFFIX
 		if (/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(currentUser.email))  
 		{  
 			currentUser.password = Math.random().toString(36).slice(-8)
-			admin.auth().getUserByEmail(uidEmali).then(function(userRecord){
-				updateUser(userRecord.uid, {
+			admin.auth().getUserByEmail(uidEmail).then(function(userRecord){
+				admin.auth().updateUser(userRecord.uid, {
 					password : currentUser.password
 				}).then(function(userRecord) {		
 					let HelperOptions = {
@@ -163,12 +151,30 @@ exports.passwordResetHttp = functions.https.onRequest((req, res) => {
 
 exports.staffPasswordChange = functions.database.ref('/staff/{userId}').onWrite(event => {
 	const currentUser = event.data.val()
-	admin.auth().updateUser(currentUser.userId, {
-		password : currentUser.password
-	}).then(function(userRecord) {
-		// See the UserRecord reference doc for the contents of userRecord.
-		console.log("Successfully updated user", userRecord.toJSON());
-	}).catch(function(error) {
-		console.log("Error updating user:", error);
-	});
+	const uidEmail = currentUser.userId+EMAIL_SUFFIX
+	admin.auth().getUserByEmail(uidEmail).then(function(userRecord){
+		admin.auth().updateUser(userRecord.uid, {
+			password : currentUser.password
+		}).then(function(userRecord) {
+			// See the UserRecord reference doc for the contents of userRecord.
+			console.log("Successfully updated user", userRecord.toJSON());
+		}).catch(function(error) {
+			console.log("Error updating user:", error);
+		});
+	})
+})
+
+exports.studentPasswordChange = functions.database.ref('/students/{classId}/{userId}').onWrite(event => {
+	const currentUser = event.data.val()
+	const uidEmail = currentUser.userId+EMAIL_SUFFIX
+	admin.auth().getUserByEmail(uidEmail).then(function(userRecord){
+		admin.auth().updateUser(userRecord.uid, {
+			password : currentUser.password
+		}).then(function(userRecord) {
+			// See the UserRecord reference doc for the contents of userRecord.
+			console.log("Successfully updated user", userRecord.toJSON());
+		}).catch(function(error) {
+			console.log("Error updating user:", error);
+		});
+	})
 })
