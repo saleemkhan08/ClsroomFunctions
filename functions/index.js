@@ -180,9 +180,15 @@ exports.studentPasswordChange = functions.database.ref('/students/{classId}/{use
 })
 
 
-exports.sendNotification = functions.database.ref('/notifications/{userId}').onWrite(event => {
+exports.sendNotification = functions.database.ref('/notifications/{userId}/{notificationId}').onWrite(event => {
 	//Notification added in database
 	const notification = event.data.val()
+	const userId = event.params.userId
+	const notificationId = event.params.notificationId
+	
+	console.log("notification: ", notification);
+	console.log("userId: ", userId);
+	console.log("notificationId: ", notificationId);
 	
 	//Creating receiver dbReference
 	var receiverRef
@@ -193,43 +199,29 @@ exports.sendNotification = functions.database.ref('/notifications/{userId}').onW
 	}else{
 		receiverRef = dbRef.child('students').child(receiverClassId).child(userId)
 	}
-	console.log("receiverRef: ", receiverRef);
 	
-	//Creating sender dbReference
-	var senderRef
-	const senderClassId = notification.senderId.substring(0,3)
-	const isSenderStaff = (notification.senderId.substring(0,1) == 'a' || notification.senderId.substring(0,1) == 's')
-	if(isSenderStaff){
-		senderRef = dbRef.child('staff').child(notification.senderId)
-	}else{
-		senderRef = dbRef.child('students').child(senderClassId).child(notification.senderId)
-	}
-	console.log("senderRef: ", senderRef);
-	
-	//Extracting sender name and photo
-	senderRef.once('value').then(snap => {
-		const sender = snap.val();
-		const payload ={
-			data:{
-				name : sender.fullName
-				photo : sender.photoUrl
-				message : notification.message
-			}
+	const payload ={
+		data:{
+			senderName : notification.senderName + "",
+			senderPhotoUrl : notification.senderPhotoUrl + "",
+			message : notification.message + "",
+			senderId : notification.senderId + "",
+			dateTime : notification.dateTime + "",
+			leaveId : notification.leaveId + "",
+			notesId : notification.notesId + "",
+			leaveRefType : notification.leaveRefType + ""
 		}
-		console.log("payload: ", payload.toJSON());
-		console.log("sender.fullName: ", sender.fullName);
-		console.log("sender.photoUrl: ", sender.photoUrl);
-		console.log("notification.message: ", notification.message);
-		
-		//Extracting receiver token
-		receiverRef.once('value').then(snap => {
-			const receiver = snap.val();
-			console.log("receiver.token: ", receiver.token);
-			admin.messaging().sendToDevice(receiver.token, payload).then(function(response) {
-				console.log("Notification Sent", response.toJSON());
-			}).catch(function(error) {
-				console.log("Error sending notification:", error);
-			});
-		})
+	}
+	console.log("payload: ", payload);
+	
+	//Extracting receiver token
+	receiverRef.once('value').then(snap => {
+		const receiver = snap.val();
+		console.log("receiver.token: ", receiver.token);
+		admin.messaging().sendToDevice(receiver.token, payload).then(function(response) {
+			console.log("Notification Sent", response);
+		}).catch(function(error) {
+			console.log("Error sending notification:", error);
+		});
 	})
 })
